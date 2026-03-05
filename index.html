@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Landmark Site Safety Documents - Bilingual</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!--
+    ARABIC SUPPORT IMPLEMENTATION:
+    We're using a hybrid approach:
+    1. Arabic text is processed for display
+    2. Characters are reversed for LTR rendering
+    3. For best results, consider using html2canvas for Arabic-heavy content
+    -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- pdfmake for better Arabic support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-brand">
+                <span class="brand-logo">🛡️</span>
+                <div class="brand-info">
+                    <h1>Landmark Safety</h1>
+                    <span class="brand-sub">Site Safety Management System</span>
+                </div>
+            </div>
+            <div class="header-controls">
+                <span class="auto-save-indicator" id="auto-save">✓ Saved</span>
+                <button class="btn-new" onclick="newAssessment()">+ New</button>
+                <button class="btn-save-header" onclick="saveAssessment()">Save</button>
+                <button class="btn-settings" onclick="goToSettings()" title="Settings">⚙️</button>
+            </div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-tab" onclick="goToAssessment()" id="back-to-assessment" style="display: none;">
+            <span class="nav-tab-icon">📋</span>
+            <span class="nav-label">Assessment</span>
+        </button>
+        <button class="nav-tab" onclick="goToSavedSites()" id="saved-sites-btn" style="display: flex;">
+            <span class="nav-tab-icon">📁</span>
+            <span class="nav-label">Saved</span>
+        </button>
+        <button class="nav-tab" onclick="goToSiteInfo()" id="site-info-btn" style="display: flex;">
+            <span class="nav-tab-icon">📍</span>
+            <span class="nav-label">Site Info</span>
+        </button>
+        <button class="nav-tab nav-emergency" onclick="goToEmergencyPlan()">
+            <span class="nav-tab-icon">🚨</span>
+            <span class="nav-label">Emergency</span>
+        </button>
+        <button class="nav-tab" onclick="goToDriverEval()" id="driver-eval-btn" style="display: flex;">
+            <span class="nav-tab-icon">🚗</span>
+            <span class="nav-label">Driver</span>
+        </button>
+        <button class="nav-tab" onclick="goToToolBox()" id="toolbox-btn" style="display: flex;">
+            <span class="nav-tab-icon">🧰</span>
+            <span class="nav-label">Toolbox</span>
+        </button>
+        <button class="nav-tab" onclick="goToCarInspection()" id="car-inspection-btn" style="display: flex;">
+            <span class="nav-tab-icon">🚘</span>
+            <span class="nav-label">Car</span>
+        </button>
+        <button class="nav-tab" onclick="exportAsJPEG()">
+            <span class="nav-tab-icon">📊</span>
+            <span class="nav-label">Export</span>
+        </button>
+    </nav>
+
+    <!-- Hidden engineer fields — read by getCurrentData() and loadData() -->
+    <input type="hidden" id="engineer-name" value="">
+    <input type="hidden" id="engineer-mobile" value="">
+
+    <!-- ===== MAIN ASSESSMENT CONTAINER ===== -->
+    <div class="container page-scroll">
+        <!-- Risk Assessment Title -->
+        <div class="page-title-compact">
+            <span class="page-title-icon">📋</span>
+            <div>
+                <div class="page-title-main">Risk Assessment</div>
+                <div class="page-title-ar">تقييم المخاطر</div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Categories -->
+            <div id="categories-container"></div>
+
+            <!-- Hazard Register -->
+            <div class="hazard-register">
+                <h3>
+                    📋 Residual Risk Register
+                    <span style="font-size: 12px; color: var(--text-secondary); font-weight: normal;">سجل المخاطر المتبقية</span>
+                </h3>
+                <div id="hazards-container"></div>
+                <button class="add-hazard-btn" onclick="addHazard()">+ Add Hazard / إضافة خطر</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="toast" id="toast"></div>
+
+
+<!-- ===== SITE INFORMATION PAGE ===== -->
+    <div id="site-info-page" class="page-scroll" style="display: none;">
+        <div class="page-title-compact">
+            <span class="page-title-icon">📍</span>
+            <div>
+                <div class="page-title-main">Site Information</div>
+                <div class="page-title-ar">معلومات الموقع</div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <div class="info-card">
+                <div class="info-grid">
+                    <div class="input-group">
+                        <label>Site Name</label>
+                        <input type="text" id="site-name" placeholder="Enter site name" onchange="saveDraft()">
+                    </div>
+                    <div class="input-group">
+                        <label>Site ID</label>
+                        <input type="text" id="site-id" placeholder="Enter site ID" onchange="saveDraft()">
+                    </div>
+                    <div class="input-group">
+                        <label>Site Type</label>
+                        <select id="site-type" onchange="saveDraft()">
+                            <option value="">Select type</option>
+                            <option value="Roof top">Roof top</option>
+                            <option value="Monopole">Monopole</option>
+                            <option value="Palm">Palm</option>
+                            <option value="Shelter">Shelter</option>
+                            <option value="New G.F Tower">New G.F Tower</option>
+                            <option value="Sharing">Sharing</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Contractor</label>
+                        <input type="text" id="contractor" placeholder="Enter contractor name" onchange="saveDraft()">
+                    </div>
+                    <div class="input-group">
+                        <label>Sub-Contractor</label>
+                        <input type="text" id="sub-contractor" placeholder="Enter sub-contractor name" onchange="saveDraft()">
+                    </div>
+                    <div class="input-group">
+                        <label>Activity</label>
+                        <input type="text" id="activity" placeholder="Enter activity description" onchange="saveDraft()">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<!-- ===== SAVED SITES PAGE ===== -->
+    <div id="saved-sites-page" class="page-scroll" style="display: none;">
+        <div class="page-title-compact">
+            <span class="page-title-icon">📁</span>
+            <div>
+                <div class="page-title-main">Saved Sites</div>
+                <div class="page-title-ar">المواقع المحفوظة</div>
+            </div>
+        </div>
+        <div class="page-content">
+            <div id="saved-sites-list">
+                <p style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 24px;">No saved sites yet</p>
+            </div>
+        </div>
+    </div>
+
+
+<!-- ===== SETTINGS PAGE ===== -->
+    <div id="settings-page" class="page-scroll" style="display: none;">
+        <div class="page-title-compact">
+            <span class="page-title-icon">⚙️</span>
+            <div>
+                <div class="page-title-main">Settings</div>
+                <div class="page-title-ar">الإعدادات</div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Engineer Info -->
+            <div class="settings-card">
+                <h3>Engineer Information (معلومات المهندس)</h3>
+                <div class="input-group" style="margin-bottom: 12px;">
+                    <label>Engineer Name (اسم المهندس)</label>
+                    <input type="text" id="settings-engineer-name" placeholder="Enter engineer name">
+                </div>
+                <div class="input-group">
+                    <label>Mobile Number (موبايل المهندس)</label>
+                    <input type="tel" id="settings-engineer-mobile" placeholder="Enter mobile number">
+                </div>
+            </div>
+
+            <button class="settings-btn settings-btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+
+            <!-- Backup & Restore -->
+            <div class="settings-card">
+                <h3>Data Backup &amp; Restore (النسخ الاحتياطي)</h3>
+                <button class="settings-btn settings-btn-secondary" onclick="backupData()">⬇️ Backup All Data</button>
+                <button class="settings-btn settings-btn-success" onclick="restoreData()">⬆️ Restore from Backup</button>
+            </div>
+        </div>
+    </div>
+
+
+<!-- ===== EMERGENCY ACTION PLAN PAGE ===== -->
+    <div class="emergency-plan-page page-scroll" id="emergency-plan-page" style="display: none;">
+
+        <div class="page-title-compact">
+            <span class="page-title-icon">🚨</span>
+            <div>
+                <div class="page-title-main">Worksite Emergency Action Plan</div>
+                <div class="page-title-ar">خطة العمل في حالات الطوارئ</div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Emergency Contact Numbers -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px var(--shadow);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 16px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Emergency Contact Numbers</h3>
+                <!-- 3 fixed numbers as colour-coded badge chips -->
+                <div class="contact-badges-row">
+                    <div class="contact-badge contact-badge-red">
+                        <span class="contact-badge-label">Ambulance<br>الإسعاف</span>
+                        <span class="contact-badge-num">123</span>
+                    </div>
+                    <div class="contact-badge contact-badge-blue">
+                        <span class="contact-badge-label">Police<br>الشرطة</span>
+                        <span class="contact-badge-num">122</span>
+                    </div>
+                    <div class="contact-badge contact-badge-orange">
+                        <span class="contact-badge-label">Civil Defense<br>الدفاع المدني</span>
+                        <span class="contact-badge-num">180</span>
+                    </div>
+                </div>
+                <!-- Hidden inputs kept for export compatibility -->
+                <input type="hidden" id="ep-ambulance" value="123">
+                <input type="hidden" id="ep-police" value="122">
+                <input type="hidden" id="ep-civil-defense" value="180">
+                <!-- Nearest Hospital — editable, full width -->
+                <div class="contact-hospital">
+                    <label>Nearest Hospital (اقرب مستشفي)</label>
+                    <input type="text" id="ep-hospital" placeholder="Enter hospital name" onchange="saveDraft()">
+                </div>
+            </div>
+
+            <!-- Personnel Assignments -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px var(--shadow);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Personnel Assignments and Special Safety Tools</h3>
+                <div style="overflow-x: auto;">
+                    <div id="personnel-container"></div>
+                </div>
+                <button onclick="addPersonnel()" style="width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 14px; min-height: 52px;">+ Add Personnel</button>
+            </div>
+
+            <!-- SECTION 4: Equipment Inventory -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px var(--shadow);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Equipment Inventory &amp; Condition</h3>
+                <div id="equipment-container"></div>
+            </div>
+
+            <!-- SECTION 5: Emergency Plan & Evacuation -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px var(--shadow);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Emergency Plan &amp; Evacuation Procedure</h3>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-size: 14px; font-weight: 600;">
+                        Emergency Plan - Evacuation Procedure and Assembly Point
+                    </label>
+                    <label style="display: block; margin-bottom: 10px; color: var(--text-secondary); font-size: 13px; font-family: 'Cairo', sans-serif;">
+                        خطة الطوارئ - طريقة الاخلاء ونقطة التجمع
+                    </label>
+                    <textarea id="emergency-evacuation-plan" placeholder="Enter emergency evacuation plan and assembly point details..." onchange="saveDraft()" style="width: 100%; padding: 16px; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px; min-height: 150px; resize: vertical; font-family: inherit;"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- DRIVER EVALUATION PAGE -->
+    <div id="driver-eval-page" class="page-scroll" style="display: none;">
+
+        <div class="page-title-compact">
+            <span class="page-title-icon">🚗</span>
+            <div>
+                <div class="page-title-main">Driver Evaluation Form</div>
+                <div class="page-title-ar">نموذج تقييم السائق</div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Driver & Car Information -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Driver &amp; Vehicle Information</h3>
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; color: var(--primary); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Driver Name (اسم السائق)</label>
+                        <input type="text" id="driver-name" onchange="saveDraft()" placeholder="Full name" style="width: 100%; padding: 14px; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; color: var(--primary); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Plate Number (رقم اللوحة)</label>
+                        <input type="text" id="plate-number" onchange="saveDraft()" placeholder="Plate number" style="width: 100%; padding: 14px; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; color: var(--primary); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Car Type (موديل السيارة)</label>
+                        <input type="text" id="car-type" onchange="saveDraft()" placeholder="Car model" style="width: 100%; padding: 14px; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evaluation Questions -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Evaluation Checklist</h3>
+                <div id="driver-questions-container"></div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- TOOL BOX TALKS PAGE -->
+    <div id="toolbox-page" class="page-scroll" style="display: none;">
+
+        <div class="page-title-compact">
+            <span class="page-title-icon">🧰</span>
+            <div>
+                <div class="page-title-main">Tool Box Talks</div>
+                <div class="page-title-ar">اجتماع صندوق الأدوات</div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Topic Field (Fixed - Only One) -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Topic (الموضوع)</h3>
+                <textarea id="toolbox-topic" placeholder="Enter topic..." onchange="saveDraft()" style="width: 100%; padding: 16px; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 16px; min-height: 120px; resize: vertical;"></textarea>
+            </div>
+
+            <!-- Photo Upload Section -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Photo (الصورة)</h3>
+
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Photo Upload Button -->
+                    <label for="toolbox-photo-input" style="cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--bg-input); border: 2px dashed var(--border); border-radius: 8px; transition: all 0.3s;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
+                            <div style="color: var(--text-primary); font-weight: 600; font-size: 14px;">Take Photo / Upload Image</div>
+                            <div style="color: var(--text-secondary); font-size: 12px; margin-top: 5px;">التقط صورة / حمل صورة</div>
+                        </div>
+                    </label>
+                    <input type="file" id="toolbox-photo-input" accept="image/*" capture="environment" onchange="handleToolboxPhoto(event)" style="display: none;">
+
+                    <!-- Photo Preview -->
+                    <div id="toolbox-photo-preview" style="display: none;">
+                        <div style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">
+                            <img id="toolbox-photo-img" src="" alt="Photo Preview" style="width: 100%; height: auto; display: block;">
+                            <button onclick="removeToolboxPhoto()" style="position: absolute; top: 10px; right: 10px; padding: 8px 12px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                × Remove Photo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendees Section -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Attendees (الحاضرون)</h3>
+                <div id="toolbox-attendees-container"></div>
+                <button onclick="addAttendee()" style="width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 14px; min-height: 52px;">+ Add Attendee</button>
+            </div>
+
+            <!-- Mandatory Statement -->
+            <div style="background: var(--bg-input); padding: 20px; border-radius: 12px; border: 2px solid var(--primary); margin-bottom: 20px;">
+                <p style="color: var(--text-primary); font-size: 14px; line-height: 1.6; margin: 0; text-align: center; font-weight: 600;">
+                    All the attendance alerted with the above hazards and it is mandatory for all to follow H&amp;S instructions.
+                </p>
+                <p style="color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin: 10px 0 0 0; text-align: center; font-family: 'Cairo', sans-serif;">
+                    تم تنبيه جميع الحاضرين بشأن المخاطر المذكورة أعلاه، ومن الإلزامي على الجميع اتباع تعليمات الصحة والسلامة
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- DAILY CAR INSPECTION PAGE -->
+    <div id="car-inspection-page" class="page-scroll" style="display: none;">
+
+        <div class="page-title-compact">
+            <span class="page-title-icon">🚘</span>
+            <div>
+                <div class="page-title-main">Daily Car Inspection Form</div>
+                <div class="page-title-ar">نموذج الفحص اليومي للسيارة</div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Photo Upload Section -->
+            <div style="background: var(--bg-card); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h3 style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; margin: -20px -20px 20px -20px; border-radius: 12px 12px 0 0; font-size: 14px; font-weight: 700;">Inspection Photo (صورة الفحص)</h3>
+
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Photo Upload Button -->
+                    <label for="car-inspection-photo-input" style="cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 50px; background: var(--bg-input); border: 3px dashed var(--primary); border-radius: 12px; transition: all 0.3s;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 80px; margin-bottom: 20px;">📷</div>
+                            <div style="color: var(--text-primary); font-weight: 700; font-size: 18px; margin-bottom: 8px;">Take Photo / Upload Image</div>
+                            <div style="color: var(--text-secondary); font-size: 16px; font-family: 'Cairo', sans-serif;">التقط صورة / حمل صورة</div>
+                            <div style="color: var(--text-tertiary); font-size: 13px; margin-top: 12px;">Tap here to capture car inspection photo</div>
+                        </div>
+                    </label>
+                    <input type="file" id="car-inspection-photo-input" accept="image/*" capture="environment" onchange="handleCarInspectionPhoto(event)" style="display: none;">
+
+                    <!-- Photo Preview -->
+                    <div id="car-inspection-photo-preview" style="display: none;">
+                        <div style="position: relative; border-radius: 12px; overflow: hidden; border: 2px solid var(--border); box-shadow: 0 4px 8px rgba(0,0,0,0.15);">
+                            <img id="car-inspection-photo-img" src="" alt="Car Inspection Photo" style="width: 100%; height: auto; display: block;">
+                            <button onclick="removeCarInspectionPhoto()" style="position: absolute; top: 15px; right: 15px; padding: 12px 20px; background: var(--danger); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-size: 15px;">
+                                × Remove Photo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="app.js"></script>
+</body>
+</html>
