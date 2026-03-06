@@ -16,19 +16,21 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate — remove old caches
+// Activate
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
-  );
   self.clients.claim();
 });
 
-// Fetch — serve from cache, fall back to network
+// Fetch — network-first: always try server, fall back to cache when offline
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    fetch(event.request)
+      .then(networkResponse => {
+        // Update the cache with the fresh response
+        const clone = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

@@ -523,7 +523,7 @@
                 notes = {};
                 hazards = [];
                 hazardCounter = 0;
-                
+
                 // Set all answers to 'yes' by default
                 categories.forEach((category, catIndex) => {
                     category.questions.forEach((question, qIndex) => {
@@ -531,26 +531,41 @@
                         answers[key] = 'yes';
                     });
                 });
-                
+
+                // Clear Residual Risk Register
                 renderHazards();
-                
-                // Clear inputs but preserve Emergency Action Plan data
-                const emergencyPlanPage = document.getElementById('emergency-plan-page');
+
+                // Clear all form inputs except: settings page, engineer hidden fields,
+                // fixed emergency contact numbers, and equipment/personnel tables
+                const settingsPage = document.getElementById('settings-page');
+                const equipContainer = document.getElementById('equipment-container');
+                const personnelContainer = document.getElementById('personnel-container');
+                const skipIds = ['ep-ambulance', 'ep-police', 'ep-civil-defense', 'engineer-name', 'engineer-mobile'];
                 document.querySelectorAll('input, select, textarea').forEach(el => {
-                    // Skip all inputs inside the Emergency Action Plan page
-                    if (emergencyPlanPage && emergencyPlanPage.contains(el)) {
-                        return; // Don't clear Emergency Plan inputs
-                    }
-                    // Clear all other inputs
+                    if (settingsPage && settingsPage.contains(el)) return;
+                    if (equipContainer && equipContainer.contains(el)) return;
+                    if (personnelContainer && personnelContainer.contains(el)) return;
+                    if (skipIds.includes(el.id)) return;
                     el.value = '';
                 });
-                
-                // Don't clear epPersonnel and epEquipment arrays
-                // They should persist across new assessments
-                
+
+                // Reset toolbox photo
+                toolboxPhoto = null;
+                const tbPhotoImg = document.getElementById('toolbox-photo-img');
+                if (tbPhotoImg) tbPhotoImg.src = '';
+                const tbPhotoPreview = document.getElementById('toolbox-photo-preview');
+                if (tbPhotoPreview) tbPhotoPreview.style.display = 'none';
+
+                // Reset car inspection photo
+                carInspectionPhoto = null;
+                const carPhotoImg = document.getElementById('car-inspection-photo-img');
+                if (carPhotoImg) carPhotoImg.src = '';
+                const carPhotoPreview = document.getElementById('car-inspection-photo-preview');
+                if (carPhotoPreview) carPhotoPreview.style.display = 'none';
+
                 // Re-render categories to show all 'yes' buttons selected
                 renderCategories();
-                
+
                 const riskScore = document.getElementById('risk-score');
                 if (riskScore) { riskScore.textContent = '-'; riskScore.style.color = ''; }
                 const riskLabel = document.getElementById('risk-label');
@@ -560,6 +575,7 @@
                 localStorage.removeItem('riskAssessmentDraft');
                 // Restore engineer info from settings after clearing
                 loadSettings();
+                updateExportBtn();
                 showToast('New assessment started');
                 window.scrollTo(0, 0);
             }
@@ -581,7 +597,28 @@
                 answers: answers,
                 notes: notes,
                 hazards: hazards,
-                hazardCounter: hazardCounter
+                hazardCounter: hazardCounter,
+                emergency: {
+                    hospital: document.getElementById('ep-hospital')?.value || '',
+                    evacuationPlan: document.getElementById('emergency-evacuation-plan')?.value || '',
+                    personnel: epPersonnel,
+                    equipment: epEquipment
+                },
+                driver: {
+                    name: document.getElementById('driver-name')?.value || '',
+                    plate: document.getElementById('plate-number')?.value || '',
+                    carType: document.getElementById('car-type')?.value || '',
+                    answers: driverAnswers,
+                    comments: driverComments
+                },
+                toolbox: {
+                    topic: document.getElementById('toolbox-topic')?.value || '',
+                    photo: toolboxPhoto,
+                    attendees: toolboxAttendees
+                },
+                car: {
+                    photo: carInspectionPhoto
+                }
             };
         }
 
@@ -625,8 +662,54 @@
                 renderHazards();
             }
 
+            // Load Emergency Plan
+            if (data.emergency) {
+                const hospEl = document.getElementById('ep-hospital');
+                if (hospEl) hospEl.value = data.emergency.hospital || '';
+                const evacEl = document.getElementById('emergency-evacuation-plan');
+                if (evacEl) evacEl.value = data.emergency.evacuationPlan || '';
+                if (data.emergency.personnel && data.emergency.personnel.length) epPersonnel = data.emergency.personnel;
+                if (data.emergency.equipment && data.emergency.equipment.length) epEquipment = data.emergency.equipment;
+            }
+
+            // Load Driver Evaluation
+            if (data.driver) {
+                const dnEl = document.getElementById('driver-name');
+                if (dnEl) dnEl.value = data.driver.name || '';
+                const pnEl = document.getElementById('plate-number');
+                if (pnEl) pnEl.value = data.driver.plate || '';
+                const ctEl = document.getElementById('car-type');
+                if (ctEl) ctEl.value = data.driver.carType || '';
+                if (data.driver.answers) driverAnswers = data.driver.answers;
+                if (data.driver.comments) driverComments = data.driver.comments;
+            }
+
+            // Load Toolbox
+            if (data.toolbox) {
+                const ttEl = document.getElementById('toolbox-topic');
+                if (ttEl) ttEl.value = data.toolbox.topic || '';
+                if (data.toolbox.photo) {
+                    toolboxPhoto = data.toolbox.photo;
+                    const tbImg = document.getElementById('toolbox-photo-img');
+                    if (tbImg) tbImg.src = toolboxPhoto;
+                    const tbPrev = document.getElementById('toolbox-photo-preview');
+                    if (tbPrev) tbPrev.style.display = 'block';
+                }
+                if (data.toolbox.attendees && data.toolbox.attendees.length) toolboxAttendees = data.toolbox.attendees;
+            }
+
+            // Load Car Inspection
+            if (data.car && data.car.photo) {
+                carInspectionPhoto = data.car.photo;
+                const carImg = document.getElementById('car-inspection-photo-img');
+                if (carImg) carImg.src = carInspectionPhoto;
+                const carPrev = document.getElementById('car-inspection-photo-preview');
+                if (carPrev) carPrev.style.display = 'block';
+            }
+
             updateProgress();
             categories.forEach((_, index) => updateCategoryCount(index));
+            updateExportBtn();
         }
 
         function exportJSON() {
