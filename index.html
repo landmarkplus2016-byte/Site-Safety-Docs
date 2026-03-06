@@ -48,10 +48,6 @@
     </div>
 
     <nav class="bottom-nav">
-        <button class="nav-tab" onclick="goToAssessment()" id="back-to-assessment" style="display: none;">
-            <span class="nav-tab-icon">📋</span>
-            <span class="nav-label">Assessment</span>
-        </button>
         <button class="nav-tab" onclick="goToSavedSites()" id="saved-sites-btn" style="display: flex;">
             <span class="nav-tab-icon">📁</span>
             <span class="nav-label">Saved</span>
@@ -60,12 +56,16 @@
             <span class="nav-tab-icon">📍</span>
             <span class="nav-label">Site Info</span>
         </button>
+        <button class="nav-tab" onclick="goToAssessment()" id="back-to-assessment" style="display: flex;">
+            <span class="nav-tab-icon">📋</span>
+            <span class="nav-label">Assessment</span>
+        </button>
         <button class="nav-tab nav-emergency" onclick="goToEmergencyPlan()">
             <span class="nav-tab-icon">🚨</span>
             <span class="nav-label">Emergency</span>
         </button>
         <button class="nav-tab" onclick="goToDriverEval()" id="driver-eval-btn" style="display: flex;">
-            <span class="nav-tab-icon">🚗</span>
+            <span class="nav-tab-icon">👨‍✈️</span>
             <span class="nav-label">Driver</span>
         </button>
         <button class="nav-tab" onclick="goToToolBox()" id="toolbox-btn" style="display: flex;">
@@ -76,7 +76,7 @@
             <span class="nav-tab-icon">🚘</span>
             <span class="nav-label">Car</span>
         </button>
-        <button class="nav-tab" onclick="exportAsJPEG()">
+        <button class="nav-tab" id="export-btn" onclick="exportAsJPEG()" style="opacity: 0.35;" title="Fill all pages to enable export">
             <span class="nav-tab-icon">📊</span>
             <span class="nav-label">Export</span>
         </button>
@@ -300,7 +300,7 @@
     <div id="driver-eval-page" class="page-scroll" style="display: none;">
 
         <div class="page-title-compact">
-            <span class="page-title-icon">🚗</span>
+            <span class="page-title-icon">👨‍✈️</span>
             <div>
                 <div class="page-title-main">Driver Evaluation Form</div>
                 <div class="page-title-ar">نموذج تقييم السائق</div>

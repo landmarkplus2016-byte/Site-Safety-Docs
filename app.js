@@ -286,6 +286,7 @@
         loadDraft();
         loadSettings();
         updateProgress();
+        updateExportBtn();
 
         // Auto-save on any change
         document.addEventListener('input', () => {
@@ -387,11 +388,26 @@
 
 
 
+        // Export readiness check
+        function updateExportBtn() {
+            const btn = document.getElementById('export-btn');
+            if (!btn) return;
+            const siteName = document.getElementById('site-name')?.value?.trim();
+            const hospital = document.getElementById('ep-hospital')?.value?.trim();
+            const driverName = document.getElementById('driver-name')?.value?.trim();
+            const toolboxTopic = document.getElementById('toolbox-topic')?.value?.trim();
+            const hasCarPhoto = !!(document.getElementById('car-inspection-photo-img')?.src?.startsWith('data:'));
+            const ready = siteName && hospital && driverName && toolboxTopic && hasCarPhoto;
+            btn.style.opacity = ready ? '1' : '0.35';
+            btn.title = ready ? 'Export report' : 'Fill all pages (Site Info, Emergency, Driver, Toolbox, Car) to enable export';
+        }
+
         // Local Storage Functions
         function saveDraft() {
             const draft = getCurrentData();
             localStorage.setItem('riskAssessmentDraft', JSON.stringify(draft));
             showAutoSave();
+            updateExportBtn();
         }
 
         function loadDraft() {
@@ -1462,6 +1478,17 @@
         
         // Export as JPEG
         async function exportAsJPEG() {
+            {
+                const _siteName = document.getElementById('site-name')?.value?.trim();
+                const _hospital = document.getElementById('ep-hospital')?.value?.trim();
+                const _driverName = document.getElementById('driver-name')?.value?.trim();
+                const _toolboxTopic = document.getElementById('toolbox-topic')?.value?.trim();
+                const _hasCarPhoto = !!(document.getElementById('car-inspection-photo-img')?.src?.startsWith('data:'));
+                if (!_siteName || !_hospital || !_driverName || !_toolboxTopic || !_hasCarPhoto) {
+                    showToast('Please fill all pages before exporting: Site Info, Emergency, Driver, Toolbox & Car photo');
+                    return;
+                }
+            }
             showToast('Generating 6-page report...');
             
             const data = getCurrentData();
@@ -2427,15 +2454,14 @@
         }
 
         function showOnlyInnerNav() {
-            document.getElementById('back-to-assessment').style.display = 'flex';
-            document.querySelector('button[onclick="goToEmergencyPlan()"]').style.display = 'none';
-            document.getElementById('driver-eval-btn').style.display = 'none';
-            document.getElementById('toolbox-btn').style.display = 'none';
-            document.getElementById('car-inspection-btn').style.display = 'none';
+            document.querySelector('button[onclick="goToEmergencyPlan()"]').style.display = 'inline-block';
+            document.getElementById('driver-eval-btn').style.display = 'inline-block';
+            document.getElementById('toolbox-btn').style.display = 'inline-block';
+            document.getElementById('car-inspection-btn').style.display = 'inline-block';
             const ssb = document.getElementById('saved-sites-btn');
-            if (ssb) ssb.style.display = 'none';
+            if (ssb) ssb.style.display = 'inline-block';
             const sib = document.getElementById('site-info-btn');
-            if (sib) sib.style.display = 'none';
+            if (sib) sib.style.display = 'inline-block';
         }
 
         function goToEmergencyPlan() {
@@ -2451,7 +2477,6 @@
         function goToAssessment() {
             hideAllPages();
             document.querySelector('.container').style.display = 'block';
-            document.getElementById('back-to-assessment').style.display = 'none';
             document.querySelector('button[onclick="goToEmergencyPlan()"]').style.display = 'inline-block';
             document.getElementById('driver-eval-btn').style.display = 'inline-block';
             document.getElementById('toolbox-btn').style.display = 'inline-block';
