@@ -24,6 +24,14 @@
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LM Safety">
+    <link rel="apple-touch-icon" href="Icon.png">
 </head>
 <body>
     <div class="header">
@@ -216,6 +224,18 @@
                 <h3>Data Backup &amp; Restore (النسخ الاحتياطي)</h3>
                 <button class="settings-btn settings-btn-secondary" onclick="backupData()">⬇️ Backup All Data</button>
                 <button class="settings-btn settings-btn-success" onclick="restoreData()">⬆️ Restore from Backup</button>
+            </div>
+
+            <!-- About / Branding -->
+            <div style="margin-top: 32px; padding: 24px 16px; text-align: center; border-top: 1px solid var(--border);">
+                <img src="LMP Big Logo.jpg" alt="Landmark Plus Logo"
+                     style="max-width: 240px; width: 100%; height: auto; display: block; margin: 0 auto 16px;">
+                <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 4px;">
+                    &copy; 2026 Landmark Plus &mdash; A Subsidiary of Landmark Group
+                </p>
+                <p style="font-size: 11px; color: var(--text-tertiary); margin: 0;">
+                    All Rights Reserved &nbsp;|&nbsp; Version 1.0.0
+                </p>
             </div>
         </div>
     </div>
@@ -449,5 +469,10 @@
 
 
     <script src="app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+      }
+    </script>
 </body>
 </html>
